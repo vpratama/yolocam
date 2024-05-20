@@ -1,101 +1,93 @@
 import cv2
-import json
-from ultralytics import YOLO
-import datetime
 
-now = datetime.datetime.now()
+# open the video file
+cap = cv2.VideoCapture(0)
 
-# Load the YOLOv8 model
-model = YOLO('yolov8n-seg.pt')
+# Check if the camera is opened successfully
+if not cap.isOpened():
+    print("Error opening camera")
+    exit()
 
-# Set up the RTMP stream
-rtmp_stream = "rtmp://localhost:1935"
+# Set the frame width and height
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 
-# Open the RTMP stream
-cap = cv2.VideoCapture(rtmp_stream)
+# Define color ranges for street, wall, and sky
+lower_street = (0, 0, 100)
+upper_street = (100, 50, 255)
+lower_wall = (0, 100, 0)
+upper_wall = (100, 255, 100)
+lower_sky = (100, 100, 100)
+upper_sky = (150, 255, 255)
 
-# Set up the JSON file to save the results
-json_file = "segmentation.json"
+while True:
+    # read a frame from the video
+    ret, frame = cap.read()
 
-# Define the font and scale for the timestamp
-font = cv2.FONT_HERSHEY_SIMPLEX
-font_scale = 0.5
+    # check if the frame was successfully read
+    if not ret:
+        break
 
-while cap.isOpened():
-    # Read a frame from the RTMP stream
-    success, frame = cap.read()
+    # convert the frame to HSV color space
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
-    if success:
-        now = datetime.datetime.now()
-        
-        # Convert the frame to HSV for color segmentation
-        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    # create masks for street, wall, and sky using color thresholding
+    mask_street = cv2.inRange(hsv, lower_street, upper_street)
+    mask_wall = cv2.inRange(hsv, lower_wall, upper_wall)
+    mask_sky = cv2.inRange(hsv, lower_sky, upper_sky)
 
-        # Define the color ranges for segmentation
-        lower_street = (0, 0, 100)
-        upper_street = (100, 100, 255)
-        lower_field = (30, 100, 100)
-        upper_field = (80, 255, 255)
-        lower_crossroad = (0, 0, 100)
-        upper_crossroad = (100, 100, 255)
-        lower_building = (50, 50, 50)
-        upper_building = (150, 150, 150)
-        lower_sky = (100, 100, 200)
-        upper_sky = (255, 255, 255)
+    # apply morphological operations to remove noise and fill holes
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+    mask_street = cv2.morphologyEx(mask_street, cv2.MORPH_CLOSE, kernel)
+    mask_wall = cv2.morphologyEx(mask_wall, cv2.MORPH_CLOSE, kernel)
+    mask_sky = cv2.morphologyEx(mask_sky, cv2.MORPH_CLOSE, kernel)
+    mask_street = cv2.morphologyEx(mask_street, cv2.MORPH_OPEN, kernel)
+    mask_wall = cv2.morphologyEx(mask_wall, cv2.MORPH_OPEN, kernel)
+    mask_sky = cv2.morphologyEx(mask_sky, cv2.MORPH_OPEN, kernel)
 
-        # Perform color segmentation
-        mask_street = cv2.inRange(hsv, lower_street, upper_street)
-        mask_field = cv2.inRange(hsv, lower_field, upper_field)
-        mask_crossroad = cv2.inRange(hsv, lower_crossroad, upper_crossroad)
-        mask_building = cv2.inRange(hsv, lower_building, upper_building)
-        mask_sky = cv2.inRange(hsv, lower_sky, upper_sky)
+    # apply bitwise operations to combine the masks
+    mask = cv2.bitwise_or(mask_street, mask_wall)
+    mask = cv2.bitwise_or(mask, mask_sky)
 
-        # Convert the grayscale masks to single-channel BGR images
-        mask_street = cv2.cvtColor(mask_street, cv2.COLOR_GRAY2BGR)
-        mask_field = cv2.cvtColor(mask_field, cv2.COLOR_GRAY2BGR)
-        mask_crossroad = cv2.cvtColor(mask_crossroad, cv2.COLOR_GRAY2BGR)
-        mask_building = cv2.cvtColor(mask_building, cv2.COLOR_GRAY2BGR)
-        mask_sky = cv2.cvtColor(mask_sky, cv2.COLOR_GRAY2BGR)
+    # apply Canny edge detection to the mask
+    edges = cv2.Canny(mask, 50, 150)
 
-        # Run YOLOv8 inference on the segmented frames
-        results_street = model(mask_street)
-        results_field = model(mask_field)
-        results_crossroad = model(mask_crossroad)
-        results_building = model(mask_building)
-        results_sky = model(mask_sky)
+    # apply HoughLinesP to detect lines in the image
+    lines = cv2.HoughLinesP(edges, 1, 3.1415/180, 50, minLineLength=200, maxLineGap=10)
 
-        # Visualize the results on the original frame
-        annotated_frame = results_street[0].plot()
-        annotated_frame = results_field[0].plot()
-        annotated_frame = results_crossroad[0].plot()
-        annotated_frame = results_building[0].plot()
-        annotated_frame = results_sky[0].plot()
+    # check if lines is not None before iterating over it
+    if lines is not None:
+        # iterate over the lines and draw them on the frame
+        for line in lines:
+            x1, y1, x2, y2 = line[0]
+            cv2.line(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
-        # Add the timestamp to the frame
-        timestamp = now.strftime("%Y-%m-%d %H:%M:%S")
-        cv2.putText(annotated_frame, timestamp, (10, 30), font, font_scale, (0, 255, 0), 1, cv2.LINE_AA)
+    # apply bitwise operations to segment the street, wall, and sky
+    street = cv2.bitwise_and(frame, frame, mask=mask_street)
+    wall = cv2.bitwise_and(frame, frame, mask=mask_wall)
+    sky = cv2.bitwise_and(frame, frame, mask=mask_sky)
 
+    # apply color mapping tothe segmented regions
+    street = cv2.cvtColor(street, cv2.COLOR_BGR2GRAY)
+    wall = cv2.cvtColor(wall, cv2.COLOR_BGR2HSV)
+    wall[..., 0] = 0
+    wall[..., 1] = 0
+    wall[..., 2] = 255
+    sky = cv2.cvtColor(sky, cv2.COLOR_BGR2HSV)
+    sky[..., 0] = 120
+    sky[..., 1] = 255
+    sky[..., 2] = 255
 
-        # Save the results to the JSON file
-        with open(json_file, 'a') as f:
-            json.dump(results_street[0].boxes.xyxy.tolist(), f)
-            f.write('\n')
-            json.dump(results_field[0].boxes.xyxy.tolist(), f)
-            f.write('\n')
-            json.dump(results_crossroad[0].boxes.xyxy.tolist(), f)
-            f.write('\n')
-            json.dump(results_building[0].boxes.xyxy.tolist(), f)
-            f.write('\n')
-            json.dump(results_sky[0].boxes.xyxy.tolist(), f)
-            f.write('\n')
+    # display the resulting frames
+    cv2.imshow("frame", frame)
+    cv2.imshow("street", street)
+    cv2.imshow("wall", wall)
+    cv2.imshow("sky", sky)
 
-        # Display the annotated frame
-        cv2.imshow("Autonomous Driving", annotated_frame)
+    # exit the loop if the user presses the 'q' key
+    if cv2.waitKey(1) & 0xFF == ord("q"):
+        break
 
-        # Exit on key press
-        if cv2.waitKey(1) == ord('q'):
-            break
-
-# Release the RTMP stream and close the window
+# release the video capture object and close all windows
 cap.release()
 cv2.destroyAllWindows()
