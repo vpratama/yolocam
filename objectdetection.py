@@ -32,4 +32,4 @@ def predict_and_save(model, source, save_path, show=True, imgsz=320, conf=0.5):
         json.dump(results_list, f, indent=4)
 
 # Example usage
-predict_and_save(model, 'rtmp://localhost:1935', 'objectdetection.json')
+predict_and_save(model, 'rtmp://167.205.66.10:1935', 'objectdetection.json')

@@ -1,7 +1,7 @@
 import cv2
 from ffmpeg import input, output, run_async
 
-rtmp_server_url = "rtmp://192.168.150.90:1935"
+rtmp_server_url = "rtmp://167.205.66.10:1935"
 
 # Set camera settings
 camera_width = 1280
