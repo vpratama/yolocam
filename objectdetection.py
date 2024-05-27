@@ -4,12 +4,14 @@ import datetime
 import cv2
 import numpy as np
 import time
+# from cap_from_youtube import cap_from_youtube
 
 # Load YOLO model
 model = YOLO('yolov8n.pt')
 
 # Open the RTMP stream
 cap = cv2.VideoCapture("rtmp://167.205.66.10:1935")
+# cap = cap_from_youtube("https://www.youtube.com/watch?v=cSdAvZ5UBvA")
 
 # Create a JSON file to save the results
 json_file = None
@@ -43,23 +45,27 @@ while True:
         # Extract the detection results
         detections = []
         for result in results:
-            x1, y1, x2, y2 = result.boxes.xyxy[0]
-            confidence = result.boxes.conf[0]
-            class_id = result.boxes.cls[0]
-            name = get_label(int(class_id), model.names)
-            detections.append({
-                "x1": int(x1),
-                "y1": int(y1),
-                "x2": int(x2),
-                "y2": int(y2),
-                "confidence": float(confidence),
-                "class_id": int(class_id),
-                "name": name
-            })
+            if len(result.boxes.xyxy) > 0:  # Check if the xyxy array is not empty
+                x1, y1, x2, y2 = result.boxes.xyxy[0]
+                confidence = result.boxes.conf[0]
+                class_id = result.boxes.cls[0]
+                name = get_label(int(class_id), model.names)
+                data = {
+                    "x1": int(x1),
+                    "y1": int(y1),
+                    "x2": int(x2),
+                    "y2": int(y2),
+                    "confidence": float(confidence),
+                    "class_id": int(class_id),
+                    "name": name
+                }
+                detections.append(data)
+                print(detections)
 
         # Save the detection results to the JSON file
-        json.dump(detections, json_file)
-        json_file.write("\n")
+        json_string = json.dumps(detections)
+        json_string = json_string.replace("[", "").replace("]", "") + ",\n"
+        json_file.write(json_string)
 
         # Display the frame with bounding boxes
         for detection in detections:
@@ -80,3 +86,4 @@ while True:
 
     # Reopen the RTMP stream
     cap = cv2.VideoCapture("rtmp://167.205.66.10:1935")
+    # cap = cap_from_youtube("https://www.youtube.com/watch?v=78nzGAmyUlk")
