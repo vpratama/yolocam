@@ -7,7 +7,7 @@ rtmp_server_url = "rtmp://167.205.66.10:1935"
 camera_width = 1280
 camera_height = 720
 
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(rtmp_server_url)
 
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, camera_width)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, camera_height)

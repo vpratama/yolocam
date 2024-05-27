@@ -4,10 +4,14 @@ import datetime
 import cv2
 import numpy as np
 import time
+from scipy.spatial import distance as dist
 # from cap_from_youtube import cap_from_youtube
 
 # Load YOLO model
 model = YOLO('yolov8n.pt')
+
+# Add this line after the model is loaded
+focal_length = 500  # This is just an example value, replace it with the actual focal length of your camera
 
 # Open the RTMP stream
 cap = cv2.VideoCapture("rtmp://167.205.66.10:1935")
@@ -50,6 +54,11 @@ while True:
                 confidence = result.boxes.conf[0]
                 class_id = result.boxes.cls[0]
                 name = get_label(int(class_id), model.names)
+
+                box_size = dist.euclidean((x1, y1), (x2, y2))
+                real_size = 1.8  # This is the real-world size of the object in meters
+                distance = (real_size * focal_length) / box_size
+
                 data = {
                     "x1": int(x1),
                     "y1": int(y1),
@@ -57,7 +66,8 @@ while True:
                     "y2": int(y2),
                     "confidence": float(confidence),
                     "class_id": int(class_id),
-                    "name": name
+                    "name": name,
+                    "distance": distance
                 }
                 detections.append(data)
                 print(detections)
