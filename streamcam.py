@@ -1,13 +1,13 @@
 import cv2
 from ffmpeg import input, output, run_async
 
-rtmp_server_url = "rtmp://167.205.66.10:1935"
+rtmp_server_url = "rtmp://127.0.0.1:1935"
 
 # Set camera settings
 camera_width = 1280
 camera_height = 720
 
-cap = cv2.VideoCapture(rtmp_server_url)
+cap = cv2.VideoCapture(0)
 
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, camera_width)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, camera_height)
