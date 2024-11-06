@@ -72,7 +72,7 @@ channel.queue_declare(queue='camera')  # Declare the queue if it doesn't exist
 model = YOLO("yolov8n.pt")  # Ensure you have the YOLOv8 weights file
 
 # Capture video from camera
-cap = cv2.VideoCapture("rtmp://127.0.0.1:1935")
+cap = cv2.VideoCapture(0)
 if not cap.isOpened():
     print("Error: Could not open video stream.")
     exit()
