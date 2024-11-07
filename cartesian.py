@@ -10,24 +10,22 @@ RABBITMQ_PORT = 5672
 RABBITMQ_VIRTUAL_HOST = '/'
 RABBITMQ_USERNAME = 'camera'
 RABBITMQ_PASSWORD = 'camera'
-QUEUE_NAMES = ['camera-front', 'camera-side-1']
+QUEUE_NAMES = ['camera-front', 'camera-side-1', 'camera-side-2', 'camera-back']
 EXCHANGE_NAME = 'amq.direct'
 
 # Create a figure and axis for plotting
 fig, ax = plt.subplots()
 
 def update_plot(data, queue_name):
-    # Clear the previous plot
-    ax.clear()
-
+    
     # Draw the car icon at the origin (0, 0)
     car_size = 2  # Size of the car box (2x2)
-    car_icon = patches.Rectangle((-car_size / 2, -car_size / 2), car_size, car_size, linewidth=2, edgecolor='blue', facecolor='blue')
+    car_icon = patches.Rectangle((-car_size*50, -car_size*300), car_size*100, car_size*300, linewidth=2, edgecolor='gray', facecolor='gray')
     ax.add_patch(car_icon)
 
     # Annotate the car position
-    ax.annotate('Car (0,0)', (0, 0), textcoords="offset points", xytext=(0, 10), ha='center', fontsize=10,
-                bbox=dict(boxstyle="round,pad=0.3", edgecolor='black', facecolor='lightblue'))
+    # ax.annotate('Car (0,0)', (0, 0), textcoords="offset points", xytext=(0, 10), ha='center', fontsize=10,
+    #             bbox=dict(boxstyle="round,pad=0.3", edgecolor='black', facecolor='lightblue'))
 
     # Draw obstacles from the received data
     for item in data:
@@ -43,18 +41,38 @@ def update_plot(data, queue_name):
 
         # Apply transformations based on the queue name
         if queue_name == 'camera-front':
-            center_x -= 640  # For camera front
+            center_x -= 480  # For camera front
             color = 'red'  # Set color to red for camera front
         elif queue_name == 'camera-side-1':
-            center_x = center_y - 640   # For camera side 1
-            center_y = center_x - 640
-            color = 'blue'  # Set color to blue for camera side 1
+            x1 = center_x + (item['y1'] - center_y)
+            x2 = center_x + (item['y2'] - center_y)
+            y1 = center_y - (item['x1'] - center_x)
+            y2 = center_y - (item['x2'] - center_x)
+            center_x = ((item['y1'] + item['y2']) / 2) - 720   # For camera side 1
+            center_y = ((item['x1'] + item['x2']) / 2) - 640
+            color = 'purple'  # Set color to blue for camera side 1
+        elif queue_name == 'camera-side-2':
+            x1 = center_x - (item['y1'] - center_y)
+            x2 = center_x - (item['y2'] - center_y)
+            y1 = center_y + (item['x1'] - center_x)
+            y2 = center_y + (item['x2'] - center_x)
+            center_x = ((item['y1'] + item['y2']) / 2) - 720   # For camera side 2
+            center_y = ((item['x1'] + item['x2']) / 2) - 640
+            color = 'green'  # Set color to blue for camera side 2
+        elif queue_name == 'camera-back':
+            x1 = item['x1']
+            y1 = -item['y2']
+            x2 = item['x2']
+            y2 = -item['y1']
+            center_x = (item['x1'] + item['x2']) / 2 - 480
+            center_y = ((item['y2'] + item['y1']) / 2) - 1280
+            color = 'black'  # Set color to blue for camera back
 
         # Calculate distance from the car to the center of the obstacle
         distance = np.sqrt(center_x**2 + center_y**2)
 
         # Create a rectangle for the obstacle
-        obstacle = patches.Rectangle((center_x, center_y), x2 - x1, y2 - y1, linewidth=1, edgecolor=color, facecolor=color, alpha=0.5)
+        obstacle = patches.Rectangle((center_x, center_y), x2 - x1, y2 - y1, linewidth=1, edgecolor=color, facecolor=color, alpha=0.3)
         ax.add_patch(obstacle)
 
         # Annotate the obstacle with its name and distance
@@ -78,6 +96,9 @@ def update_plot(data, queue_name):
     plt.draw()
     plt.pause(0.1)
 
+    # Clear the previous plot
+    ax.clear()
+
 def callback(ch, method, properties, body):
     # Parse the incoming message
     queue_name = method.routing_key  # Get the queue name from the routing key
@@ -87,6 +108,12 @@ def callback(ch, method, properties, body):
     elif(queue_name == 'camera-side-1'):
         data = json.loads(body)
         update_plot(data, 'camera-side-1')
+    elif(queue_name == 'camera-side-2'):
+        data = json.loads(body)
+        update_plot(data, 'camera-side-2')
+    elif(queue_name == 'camera-back'):
+        data = json.loads(body)
+        update_plot(data, 'camera-back')
 
 def main():
     # Establish connection to RabbitMQ with credentials
