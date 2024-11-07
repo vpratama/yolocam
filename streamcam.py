@@ -1,5 +1,5 @@
 import cv2
-from ffmpeg import input, output, run_async
+from ffmpeg import input
 
 rtmp_server_url = "rtmp://127.0.0.1:1935"
 

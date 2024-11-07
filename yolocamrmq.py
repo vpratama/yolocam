@@ -58,7 +58,7 @@ real_sizes = {
 
 # Argument parser setup
 parser = argparse.ArgumentParser(description='Object Detection with YOLO and RabbitMQ')
-parser.add_argument('video_source', type=int, help='Camera index (e.g., 0 for the first camera) or rtmp url (e.g., http://localhost:1935)')
+parser.add_argument('video_source', type=int, help='Camera index (e.g., 0 for the first camera)')
 parser.add_argument('queue_name', type=str, help='RabbitMQ queue name (e.g., camera-front)')
 
 args = parser.parse_args()
@@ -75,8 +75,8 @@ connection = pika.BlockingConnection(
 channel = connection.channel()
 channel.queue_declare(queue=args.queue_name)  # Declare the queue using the argument
 
-# Load YOLOv8 model
-model = YOLO("yolov8n.pt")  # Ensure you have the YOLOv8 weights file
+# Load YOLO model
+model = YOLO("yolo11n.pt")
 
 # Capture video from the specified camera
 cap = cv2.VideoCapture(args.video_source)
