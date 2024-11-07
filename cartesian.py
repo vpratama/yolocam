@@ -10,14 +10,13 @@ RABBITMQ_PORT = 5672
 RABBITMQ_VIRTUAL_HOST = '/'
 RABBITMQ_USERNAME = 'camera'
 RABBITMQ_PASSWORD = 'camera'
-QUEUE_NAME = 'camera'
+QUEUE_NAMES = ['camera-front', 'camera-side-1']
 EXCHANGE_NAME = 'amq.direct'
-ROUTING_KEY = 'camera1'
 
 # Create a figure and axis for plotting
 fig, ax = plt.subplots()
 
-def update_plot(data):
+def update_plot(data, queue_name):
     # Clear the previous plot
     ax.clear()
 
@@ -41,22 +40,31 @@ def update_plot(data):
         # Calculate the center of the obstacle
         center_x = (x1 + x2) / 2
         center_y = (y1 + y2) / 2
-        
+
+        # Apply transformations based on the queue name
+        if queue_name == 'camera-front':
+            center_x -= 640  # For camera front
+            color = 'red'  # Set color to red for camera front
+        elif queue_name == 'camera-side-1':
+            center_x = center_y - 640   # For camera side 1
+            center_y = center_x - 640
+            color = 'blue'  # Set color to blue for camera side 1
+
         # Calculate distance from the car to the center of the obstacle
         distance = np.sqrt(center_x**2 + center_y**2)
 
         # Create a rectangle for the obstacle
-        obstacle = patches.Rectangle((center_x, center_y), x2 - x1, y2 - y1, linewidth=1, edgecolor='red', facecolor='red', alpha=0.5)
+        obstacle = patches.Rectangle((center_x, center_y), x2 - x1, y2 - y1, linewidth=1, edgecolor=color, facecolor=color, alpha=0.5)
         ax.add_patch(obstacle)
 
         # Annotate the obstacle with its name and distance
-        ax.annotate(f'{name}\nDistance: {distance:.2f}', (center_x, center_y), 
-                    textcoords="offset points", xytext=(0,10), ha='center', fontsize=8, 
-                    bbox=dict(boxstyle="round,pad=0.3", edgecolor='black', facecolor='lightgrey'))
+        # ax.annotate(f'{name}\nDistance: {distance:.2f}\nX: {center_x:.2f} Y: {center_y:.2f}', (center_x, center_y), 
+        #             textcoords="offset points", xytext=(0,10), ha='center', fontsize=8, 
+        #             bbox=dict(boxstyle="round,pad=0.3", edgecolor='black', facecolor='lightgrey'))
 
-    # Set limits and labels to -1000 to 1000
-    ax.set_xlim(-1000, 1000)  # Original x-coordinates on the x-axis
-    ax.set_ylim(-1000, 1000)  # Distances on the y-axis
+    # Set limits and labels to -1500 to 1500
+    ax.set_xlim(-1500, 1500)  # Original x-coordinates on the x-axis
+    ax.set_ylim(-1500, 1500)  # Distances on the y-axis
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_title('Obstacles')
@@ -72,8 +80,13 @@ def update_plot(data):
 
 def callback(ch, method, properties, body):
     # Parse the incoming message
-    data = json.loads(body)
-    update_plot(data)
+    queue_name = method.routing_key  # Get the queue name from the routing key
+    if(queue_name == 'camera-front'):
+        data = json.loads(body)
+        update_plot(data, 'camera-front')
+    elif(queue_name == 'camera-side-1'):
+        data = json.loads(body)
+        update_plot(data, 'camera-side-1')
 
 def main():
     # Establish connection to RabbitMQ with credentials
@@ -83,19 +96,22 @@ def main():
             host=RABBITMQ_HOST,
             port=RABBITMQ_PORT,
             virtual_host=RABBITMQ_VIRTUAL_HOST,
-            credentials=credentials
+            credentials =credentials
         )
     )
     channel = connection.channel()
 
-    # Declare the queue (make sure it exists)
-    channel.queue_declare(queue=QUEUE_NAME)
+    # Declare the queues (make sure they exist)
+    for queue_name in QUEUE_NAMES:
+        channel.queue_declare(queue=queue_name)
 
-    # Bind the queue to the exchange with the routing key
-    channel.queue_bind(exchange=EXCHANGE_NAME, queue=QUEUE_NAME, routing_key=ROUTING_KEY)
+    # Bind the queues to the exchange with the routing key
+    for queue_name in QUEUE_NAMES:
+        channel.queue_bind(exchange=EXCHANGE_NAME, queue=queue_name, routing_key=queue_name)
 
-    # Subscribe to the queue
-    channel.basic_consume(queue=QUEUE_NAME, on_message_callback=callback, auto_ack=True)
+    # Subscribe to the queues
+    for queue_name in QUEUE_NAMES:
+        channel.basic_consume(queue=queue_name, on_message_callback=callback, auto_ack=True)
 
     print('Waiting for messages. To exit press CTRL+C')
     channel.start_consuming()

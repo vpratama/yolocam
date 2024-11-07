@@ -3,58 +3,65 @@ import pika
 import json
 from ultralytics import YOLO
 from scipy.spatial import distance as dist
+import argparse
 
 # Camera
 focal_length = 500
 
 # Define real sizes for different classes (in meters)
 real_sizes = {
-    'person': 1.8,          # height of an average person
-    'car': 1.5,             # average height of a car
-    'bicycle': 1.0,         # average height of a bicycle
-    'dog': 0.5,             # average height of a dog
-    'cat': 0.3,             # average height of a cat
-    'truck': 2.0,           # average height of a truck
-    'bus': 3.5,             # average height of a bus
-    'motorcycle': 1.2,      # average height of a motorcycle
-    'sheep': 1.0,           # average height of a sheep
-    'horse': 1.5,           # average height of a horse
-    'elephant': 3.0,        # average height of an elephant
-    'giraffe': 5.5,         # average height of a giraffe
-    'table': 0.75,          # average height of a table
-    'chair': 0.45,          # average height of a chair
-    'sofa': 0.85,           # average height of a sofa
-    'tv': 1.0,              # average height of a TV (from floor to top)
-    'refrigerator': 1.8,    # average height of a refrigerator
-    'door': 2.0,            # average height of a door
-    'window': 1.5,          # average height of a window
-    'tree': 5.0,            # average height of a small tree
-    'flower': 0.3,          # average height of a flower
-    'basketball': 0.24,     # average height of a basketball
-    'soccer_ball': 0.22,    # average height of a soccer ball
-    'apple': 0.1,           # average height of an apple
-    'banana': 0.2,          # average height of a banana
-    'bottle': 0.25,         # average height of a standard bottle
-    'cup': 0.1,             # average height of a cup
-    'pencil': 0.19,         # average height of a pencil
-    'book': 0.25,           # average height of a book
-    'laptop': 0.02,         # average height of a laptop
-    'backpack': 0.5,        # average height of a backpack
-    'stool': 0.75,          # average height of a stool
-    'bench': 0.9,           # average height of a bench
-    'kitchen_island': 0.9,  # average height of a kitchen island
-    'fire_hydrant': 1.0,    # average height of a fire hydrant
-    'traffic_light': 2.5,    # average height of a traffic light
-    'sign': 1.5,            # average height of a road sign
-    'cactus': 1.0,          # average height of a cactus
-    'palm_tree': 6.0,       # average height of a palm tree
-    'fence': 1.5,           # average height of a fence
-    'swing': 1.5,           # average height of a swing
-    'ladder': 2.0,          # average height of a ladder
-    'scooter': 0.9,         # average height of a scooter
-    'skateboard': 0.1,      # average height of a skateboard
-    # Add other classes and their real sizes as needed
+    'person': 1.8,
+    'car': 1.5,
+    'bicycle': 1.0,
+    'dog': 0.5,
+    'cat': 0.3,
+    'truck': 2.0,
+    'bus': 3.5,
+    'motorcycle': 1.2,
+    'sheep': 1.0,
+    'horse': 1.5,
+    'elephant': 3.0,
+    'giraffe': 5.5,
+    'table': 0.75,
+    'chair': 0.45,
+    'sofa': 0.85,
+    'tv': 1.0,
+    'refrigerator': 1.8,
+    'door': 2.0,
+    'window': 1.5,
+    'tree': 5.0,
+    'flower': 0.3,
+    'basketball': 0.24,
+    'soccer_ball': 0.22,
+    'apple': 0.1,
+    'banana': 0.2,
+    'bottle': 0.25,
+    'cup': 0.1,
+    'pencil': 0.19,
+    'book': 0.25,
+    'laptop': 0.02,
+    'backpack': 0.5,
+    'stool': 0.75,
+    'bench': 0.9,
+    'kitchen_island': 0.9,
+    'fire_hydrant': 1.0,
+    'traffic_light': 2.5,
+    'sign': 1.5,
+    'cactus': 1.0,
+    'palm_tree': 6.0,
+    'fence': 1.5,
+    'swing': 1.5,
+    'ladder': 2.0,
+    'scooter': 0.9,
+    'skateboard': 0.1,
 }
+
+# Argument parser setup
+parser = argparse.ArgumentParser(description='Object Detection with YOLO and RabbitMQ')
+parser.add_argument('video_source', type=int, help='Camera index (e.g., 0 for the first camera) or rtmp url (e.g., http://localhost:1935)')
+parser.add_argument('queue_name', type=str, help='RabbitMQ queue name (e.g., camera-front)')
+
+args = parser.parse_args()
 
 # Initialize RabbitMQ connection with specified parameters
 connection = pika.BlockingConnection(
@@ -66,13 +73,13 @@ connection = pika.BlockingConnection(
     )
 )
 channel = connection.channel()
-channel.queue_declare(queue='camera')  # Declare the queue if it doesn't exist
+channel.queue_declare(queue=args.queue_name)  # Declare the queue using the argument
 
 # Load YOLOv8 model
 model = YOLO("yolov8n.pt")  # Ensure you have the YOLOv8 weights file
 
-# Capture video from camera
-cap = cv2.VideoCapture(0)
+# Capture video from the specified camera
+cap = cv2.VideoCapture(args.video_source)
 if not cap.isOpened():
     print("Error: Could not open video stream.")
     exit()
@@ -121,7 +128,7 @@ while True:
     # Send detection data to RabbitMQ
     channel.basic_publish(
         exchange='amq.direct',
-        routing_key='camera1',
+        routing_key=args.queue_name,
         body=json.dumps(detection_data)
     )
 
