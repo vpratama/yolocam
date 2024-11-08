@@ -4,6 +4,7 @@ import json
 from ultralytics import YOLO
 from scipy.spatial import distance as dist
 import argparse
+import time  # Import time module
 
 # Camera
 focal_length = 500
