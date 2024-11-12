@@ -1,0 +1,22 @@
+version: '3'
+
+services:
+  rabbitmq:
+    image: rabbitmq:management
+    ports:
+      - "15672:15672"  # Management UI
+      - "5672:5672"    # AMQP
+      - "1883:1883"    # MQTT
+      - "1885:1885"    # MQTT over WebSocket
+      - "61613:61613"  # STOMP
+      - "15674:15674"  # STOMP over WebSocket
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    # volumes:
+    #   - ./rabbitmq_data:/var/lib/rabbitmq  # Mount RabbitMQ data directory
+    command: >
+      sh -c "rabbitmq-plugins enable rabbitmq_management rabbitmq_mqtt rabbitmq_web_mqtt rabbitmq_stomp rabbitmq_web_stomp && rabbitmq-server"
+
+volumes:
+  rabbitmq_data:

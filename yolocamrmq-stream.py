@@ -4,6 +4,7 @@ import json
 from ultralytics import YOLO
 from scipy.spatial import distance as dist
 import argparse
+import datetime
 import time  # Import time module
 
 # Camera
@@ -11,7 +12,7 @@ focal_length = 500
 
 # Define real sizes for different classes (in meters)
 real_sizes = {
-    'person': 1.8,
+    'person': 1.65,
     'car': 1.5,
     'bicycle': 1.0,
     'dog': 0.5,
@@ -59,7 +60,7 @@ real_sizes = {
 
 # Argument parser setup
 parser = argparse.ArgumentParser(description='Object Detection with YOLO and RabbitMQ')
-parser.add_argument('video_source', type=str, help='RTMP url (e.g., http://localhost:1935)')
+parser.add_argument('video_source', type=str, help='RTMP Stream URL (e.g., http://localhost:1935/live/cam1)')
 parser.add_argument('queue_name', type=str, help='RabbitMQ queue name (e.g., camera-front)')
 
 args = parser.parse_args()
@@ -70,11 +71,12 @@ connection = pika.BlockingConnection(
         host='localhost',
         port=5672,
         virtual_host='/',
-        credentials=pika.PlainCredentials('camera', 'camera')
+        credentials=pika.PlainCredentials('camera', 'camera'),
+        heartbeat=600
     )
 )
 channel = connection.channel()
-channel.queue_declare(queue=args.queue_name)  # Declare the queue using the argument
+channel.queue_declare(queue=args.queue_name, durable = True, auto_delete = True)  # Declare the queue using the argument
 
 # Load YOLO model
 model = YOLO("yolo11n.pt")
@@ -89,6 +91,9 @@ def get_label(class_id, yolo_classes):
     return yolo_classes[class_id]
 
 while True:
+    # Record the start time
+    start_time = time.time()
+
     # Read a frame from the camera
     ret, frame = cap.read()
     if not ret:
@@ -103,7 +108,7 @@ while True:
         for box in result.boxes:
             x1, y1, x2, y2 = box.xyxy[0]  # Get bounding box coordinates
             confidence = box.conf[0]  # Get confidence score
-            label = model.names[int(box.cls[0])]  # Get class label
+            label = model.names[int(box.cls[0])]  
             class_id = result.boxes.cls[0]
             name = get_label(int(class_id), model.names)
             box_size = dist.euclidean((x1, y1), (x2, y2))
@@ -114,6 +119,7 @@ while True:
 
             # Append detection data
             detection_data.append({
+                "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "class_id": int(class_id),
                 'label': label,
                 "name": name,
@@ -141,6 +147,11 @@ while True:
         cv2.putText(frame, text, (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
     cv2.imshow("Image", frame)
+
+    # Calculate the time taken to process the frame
+    # elapsed_time = time.time() - start_time
+    # wait_time = max(1, int(30 - elapsed_time * 1000))  # Calculate wait time in milliseconds
+    # cv2.waitKey(wait_time)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break

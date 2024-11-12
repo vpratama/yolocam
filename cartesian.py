@@ -52,17 +52,14 @@ def update_plot(data):
 
         color = 'red'  # Set color to red for camera front
 
-        # Calculate distance from the car to the center of the obstacle
-        distance = np.sqrt(center_x**2 + center_y**2)
-
         # Create a rectangle for the obstacle
-        obstacle = patches.Rectangle((center_x, center_y), x2 - x1, y2 - y1, linewidth=1, edgecolor=color, facecolor=color, alpha=0.3)
+        obstacle = patches.Rectangle((center_x, item['distance']*1000), x2 - x1, y2 - y1, linewidth=1, edgecolor=color, facecolor=color, alpha=0.3)
         ax.add_patch(obstacle)
 
         # Annotate the obstacle with its name and distance
-        # ax.annotate(f'{name}\nDistance: {distance:.2f}\nX: {center_x:.2f} Y: {center_y:.2f}', (center_x, center_y), 
-        #             textcoords="offset points", xytext=(0,10), ha='center', fontsize=8, 
-        #             bbox=dict(boxstyle="round,pad=0.3", edgecolor='black', facecolor='lightgrey'))
+        ax.annotate(f'{name}\nDistance: {item['distance']:.2f}\nX: {center_x:.2f} Y: {center_y:.2f}', (center_x, item['distance']*1000), 
+                    textcoords="offset points", xytext=(0,10), ha='center', fontsize=8, 
+                    bbox=dict(boxstyle="round,pad=0.3", edgecolor='black', facecolor='lightgrey'))
 
     for item in data['camera-side-1']:
         name = item.get('name', 'Obstacle')  # Get the name from the data, default to 'Obstacle' if not provided
@@ -81,17 +78,14 @@ def update_plot(data):
 
         color = 'purple'  # Set color to blue for camera side 1
 
-        # Calculate distance from the car to the center of the obstacle
-        distance = np.sqrt(center_x**2 + center_y**2)
-
         # Create a rectangle for the obstacle
-        obstacle = patches.Rectangle((center_x, center_y), x2 - x1, y2 - y1, linewidth=1, edgecolor=color, facecolor=color, alpha=0.3)
+        obstacle = patches.Rectangle((-item['distance']*1000, center_y), x2 - x1, y2 - y1, linewidth=1, edgecolor=color, facecolor=color, alpha=0.3)
         ax.add_patch(obstacle)
 
         # Annotate the obstacle with its name and distance
-        # ax.annotate(f'{name}\nDistance: {distance:.2f}\nX: {center_x:.2f} Y: {center_y:.2f}', (center_x, center_y), 
-        #             textcoords="offset points", xytext=(0,10), ha='center', fontsize=8, 
-        #             bbox=dict(boxstyle="round,pad=0.3", edgecolor='black', facecolor='lightgrey'))
+        ax.annotate(f'{name}\nDistance: {item['distance']:.2f}\nX: {center_x:.2f} Y: {center_y:.2f}', (-item['distance']*1000, center_y), 
+                    textcoords="offset points", xytext=(0,10), ha='center', fontsize=8, 
+                    bbox=dict(boxstyle="round,pad=0.3", edgecolor='black', facecolor='lightgrey'))
 
     for item in data['camera-side-2']:
         name = item.get('name', 'Obstacle')  # Get the name from the data, default to 'Obstacle' if not provided
@@ -105,22 +99,19 @@ def update_plot(data):
         y2 = center_y + (item['x2'] - center_x)
 
         # Calculate the center of the obstacle
-        center_x = ((item['y1'] + item['y2']) / 2) - 720   # For camera side 2
+        center_x = ((item['y1'] + item['y2']) / 2) + 320   # For camera side 2
         center_y = ((item['x1'] + item['x2']) / 2) - 640
 
-        color = 'green'  # Set color to blue for camera side 1
-
-        # Calculate distance from the car to the center of the obstacle
-        distance = np.sqrt(center_x**2 + center_y**2)
+        color = 'green'  # Set color to blue for camera side 2
 
         # Create a rectangle for the obstacle
-        obstacle = patches.Rectangle((center_x, center_y), x2 - x1, y2 - y1, linewidth=1, edgecolor=color, facecolor=color, alpha=0.3)
+        obstacle = patches.Rectangle((item['distance']*1000, center_y), x2 - x1, y2 - y1, linewidth=1, edgecolor=color, facecolor=color, alpha=0.3)
         ax.add_patch(obstacle)
 
         # Annotate the obstacle with its name and distance
-        # ax.annotate(f'{name}\nDistance: {distance:.2f}\nX: {center_x:.2f} Y: {center_y:.2f}', (center_x, center_y), 
-        #             textcoords="offset points", xytext=(0,10), ha='center', fontsize=8, 
-        #             bbox=dict(boxstyle="round,pad=0.3", edgecolor='black', facecolor='lightgrey'))
+        ax.annotate(f'{name}\nDistance: {item['distance']:.2f}\nX: {center_x:.2f} Y: {center_y:.2f}', (item['distance']*1000, center_y), 
+                    textcoords="offset points", xytext=(0,10), ha='center', fontsize=8, 
+                    bbox=dict(boxstyle="round,pad=0.3", edgecolor='black', facecolor='lightgrey'))
 
     for item in data['camera-back']:
         name = item.get('name', 'Obstacle')  # Get the name from the data, default to 'Obstacle' if not provided
@@ -136,21 +127,18 @@ def update_plot(data):
 
         color = 'black'  # Set color to red for camera front
 
-        # Calculate distance from the car to the center of the obstacle
-        distance = np.sqrt(center_x**2 + center_y**2)
-
         # Create a rectangle for the obstacle
-        obstacle = patches.Rectangle((center_x, center_y), x2 - x1, y2 - y1, linewidth=1, edgecolor=color, facecolor=color, alpha=0.3)
+        obstacle = patches.Rectangle((center_x, -item['distance']*1000), x2 - x1, y2 - y1, linewidth=1, edgecolor=color, facecolor=color, alpha=0.3)
         ax.add_patch(obstacle)
 
         # Annotate the obstacle with its name and distance
-        # ax.annotate(f'{name}\nDistance: {distance:.2f}\nX: {center_x:.2f} Y: {center_y:.2f}', (center_x, center_y), 
-        #             textcoords="offset points", xytext=(0,10), ha='center', fontsize=8, 
-        #             bbox=dict(boxstyle="round,pad=0.3", edgecolor='black', facecolor='lightgrey'))
+        ax.annotate(f'{name}\nDistance: {item['distance']:.2f}\nX: {center_x:.2f} Y: {center_y:.2f}', (center_x, -item['distance']*1000), 
+                    textcoords="offset points", xytext=(0,10), ha='center', fontsize=8, 
+                    bbox=dict(boxstyle="round,pad=0.3", edgecolor='black', facecolor='lightgrey'))
 
     # Set limits and labels to -1500 to 1500
-    ax.set_xlim(-1500, 1500)  # Original x-coordinates on the x-axis
-    ax.set_ylim(-1500, 1500)  # Distances on the y-axis
+    ax.set_xlim(-2000, 2000)  # Original x-coordinates on the x-axis
+    ax.set_ylim(-2000, 2000)  # Distances on the y-axis
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_title('Obstacles')
@@ -203,7 +191,7 @@ def main():
 
     # Declare the queues (make sure they exist)
     for queue_name in QUEUE_NAMES:
-        channel.queue_declare(queue=queue_name)
+        channel.queue_declare(queue=queue_name, durable = True, auto_delete = True)
 
     # Bind the queues to the exchange with the routing key
     for queue_name in QUEUE_NAMES:
