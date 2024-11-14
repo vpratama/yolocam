@@ -60,7 +60,7 @@ real_sizes = {
 
 # Argument parser setup
 parser = argparse.ArgumentParser(description='Object Detection with YOLO and RabbitMQ')
-parser.add_argument('video_source', type=str, help='RTMP Stream URL (e.g., http://localhost:1935/live/cam1)')
+parser.add_argument('video_source', type=str, help='Camera stream url (e.g., rtmp://localhost:1935/live/camera-front)')
 parser.add_argument('queue_name', type=str, help='RabbitMQ queue name (e.g., camera-front)')
 
 args = parser.parse_args()
