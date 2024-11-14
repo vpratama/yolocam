@@ -2,6 +2,7 @@ version: '3'
 
 services:
   rabbitmq:
+    user: "1000:1000"  # Set the user and group to the current user's UID and GID
     image: rabbitmq:management
     ports:
       - "15672:15672"  # Management UI
@@ -15,6 +16,8 @@ services:
       RABBITMQ_DEFAULT_PASS: guest
     command: >
       sh -c "rabbitmq-plugins enable rabbitmq_management rabbitmq_mqtt rabbitmq_web_mqtt rabbitmq_stomp rabbitmq_web_stomp && rabbitmq-server"
+    volumes:
+      - ./rabbitmq_data:/var/lib/rabbitmq:rw  # Mount rabbitmq data volume
 
   nginx:
     image: tiangolo/nginx-rtmp:latest  # Use a pre-built NGINX RTMP image
@@ -28,3 +31,8 @@ services:
 
 volumes:
   rabbitmq_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${PWD}/rabbitmq_data
+      o: bind
