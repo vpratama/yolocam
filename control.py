@@ -18,31 +18,31 @@ connection = pika.BlockingConnection(
     )
 )
 channel = connection.channel()
-
+ 
 # Declare the queue
 channel.queue_declare(queue=args.queue_name, durable=True, auto_delete=True)
-
+ 
 # Bind the queue to the exchange with the routing key
 channel.queue_bind(exchange='amq.topic', queue=args.queue_name, routing_key=args.queue_name)
-
+ 
 # Gear settings
 gear_settings = {
-    1: {'max_pwm_straight': 70, 'max_pwm_turn': 35, 'max_pwm_backward': 10},
-    2: {'max_pwm_straight': 140, 'max_pwm_turn': 70, 'max_pwm_backward': 30},
-    3: {'max_pwm_straight': 255, 'max_pwm_turn': 140, 'max_pwm_backward': 50}
+    1: {'max_pwm_straight': 140, 'max_pwm_turn': 130, 'max_pwm_backward': 140},
+    2: {'max_pwm_straight': 185, 'max_pwm_turn': 150, 'max_pwm_backward': 185},
+    3: {'max_pwm_straight': 255, 'max_pwm_turn': 185, 'max_pwm_backward': 255}
 }
-
+ 
 # Motor Direction
 motor_direction = "e"
-
+ 
 # Current gear
 current_gear = 1
-
+ 
 # Function to publish message to RabbitMQ
 def publish_message(message):
     channel.basic_publish(exchange='amq.topic', routing_key=args.queue_name, body=message)
     print("Message published:", message)
-
+ 
 # Function to handle keyboard input
 def handle_keyboard_input(event):
     global current_gear 
@@ -97,12 +97,12 @@ def handle_keyboard_input(event):
         elif event.name == 'e' or event.name == 'r':
             motor_direction = event.name
             print(f"Motor direction {event.name}")
-
+ 
 # initiation
 print(f"Program Start using Gear Settings {current_gear} = {gear_settings[current_gear]} and Direction = {motor_direction}")
-
+ 
 # Register keyboard event handler
 keyboard.on_press(handle_keyboard_input)
-
+ 
 # Start listening for keyboard events
 keyboard.wait()
