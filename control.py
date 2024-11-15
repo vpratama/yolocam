@@ -33,7 +33,7 @@ gear_settings = {
 }
 
 # Motor Direction
-motor_direction = "+"
+motor_direction = "e"
 
 # Current gear
 current_gear = 1
@@ -55,46 +55,46 @@ def handle_keyboard_input(event):
     
     if event.event_type == keyboard.KEY_DOWN:
         if event.name == 'w':
-            if(motor_direction == "+"):
-                message = chr(max_pwm_straight) + chr(max_pwm_straight) + chr(43) + chr(43)
-                publish_message(message.encode('utf-8'))
+            if(motor_direction == "e"):
+                message = bytes([max_pwm_straight, max_pwm_straight, 101, 101])
+                publish_message(message)
                 print(f"Forward using Power L = {max_pwm_straight} R = {max_pwm_straight}")
-            elif(motor_direction == "-"):
-                message = chr(0) + chr(0) + chr(45) + chr(45)
-                publish_message(message.encode('utf-8'))
+            elif(motor_direction == "r"):
+                message = bytes([0, 0, 114, 114])
+                publish_message(message)
                 print(f"Forward using Power L = 0 R = 0")
         elif event.name == 's':
-            if(motor_direction == "+"):
-                message = chr(0) + chr(0) + chr(43) + chr(43)
-                publish_message(message.encode('utf-8'))
+            if(motor_direction == "e"):
+                message = bytes([0, 0, 101, 101])
+                publish_message(message)
                 print(f"Backward using Power L = 0 R = 0")
-            elif(motor_direction == "-"):
-                message = chr(max_pwm_backward) + chr(max_pwm_backward) + chr(45) + chr(45)
-                publish_message(message.encode('utf-8'))
+            elif(motor_direction == "r"):
+                message = bytes([max_pwm_backward, max_pwm_backward, 114, 114])
+                publish_message(message)
                 print(f"Backward using Power L = {max_pwm_backward} R = {max_pwm_backward}")
         elif event.name == 'a':
-            if(motor_direction == "+"):
-                message = chr(0) + chr(max_pwm_turn) + chr(43) + chr(43)
-                publish_message(message.encode('utf-8'))
+            if(motor_direction == "e"):
+                message = bytes([0, max_pwm_turn, 101, 101])
+                publish_message(message)
                 print(f"Left using Power L = 0 R = {max_pwm_turn}")
-            elif(motor_direction == "-"):
-                message = chr(max_pwm_backward) + chr(0) + chr(45) + chr(45)
-                publish_message(message.encode('utf-8'))
+            elif(motor_direction == "r"):
+                message = bytes([max_pwm_backward, 0, 114, 114])
+                publish_message(message)
                 print(f"Left using Power L = {max_pwm_backward} R = 0")
         elif event.name == 'd':
-            if(motor_direction == "+"):
-                message = chr(max_pwm_turn) + chr(0) + chr(43) + chr(43)
-                publish_message(message.encode('utf-8'))
+            if(motor_direction == "e"):
+                message = bytes([max_pwm_turn, 0, 101, 101])
+                publish_message(message)
                 print(f"Right using Power L = {max_pwm_turn} R = 0")
-            if(motor_direction == "-"):
-                message = chr(0) + chr(max_pwm_backward) + chr(45) + chr(45)
-                publish_message(message.encode('utf-8'))
+            if(motor_direction == "r"):
+                message = bytes([0, max_pwm_backward, 114, 114])
+                publish_message(message)
                 print(f"Right using Power L = 0 R = {max_pwm_backward}")
         elif event.name in ['1', '2', '3']:
             current_gear = int(event.name)
             print(f"Gear changed to: {current_gear}")
             print(f"Gear Settings {current_gear} = {gear_settings[current_gear]}")
-        elif event.name == '+' or event.name == '-':
+        elif event.name == 'e' or event.name == 'r':
             motor_direction = event.name
             print(f"Motor direction {event.name}")
 
