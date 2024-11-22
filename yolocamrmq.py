@@ -60,6 +60,7 @@ real_sizes = {
 
 # Argument parser setup
 parser = argparse.ArgumentParser(description='Object Detection with YOLO and RabbitMQ')
+parser.add_argument('rmq_server', type=str, help='RabbitMQ Server Host IP Address / Domain')
 parser.add_argument('video_source', type=int, help='Camera index (e.g., 0 for the first camera)')
 parser.add_argument('queue_name', type=str, help='RabbitMQ queue name (e.g., camera-front)')
 
@@ -68,7 +69,7 @@ args = parser.parse_args()
 # Initialize RabbitMQ connection with specified parameters
 connection = pika.BlockingConnection(
     pika.ConnectionParameters(
-        host='localhost',
+        host=args.rmq_server,
         port=5672,
         virtual_host='/',
         credentials=pika.PlainCredentials('camera', 'camera'),

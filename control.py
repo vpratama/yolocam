@@ -1,19 +1,20 @@
 import pika
 import keyboard
 import argparse
-
+ 
 # Argument parser setup
 parser = argparse.ArgumentParser(description='Megabot Control')
+parser.add_argument('rmq_server', type=str, help='RabbitMQ Server Host IP Address / Domain')
 parser.add_argument('queue_name', type=str, help='Queue Name')  # Changed to str for queue name
 args = parser.parse_args()
-
+ 
 # RabbitMQ connection parameters
 connection = pika.BlockingConnection(
     pika.ConnectionParameters(
-        host='localhost',
+        host=args.rmq_server,
         port=5672,
-        virtual_host='/',
-        credentials=pika.PlainCredentials('control', 'control'),
+        virtual_host='/megabot',
+        credentials=pika.PlainCredentials('megabot', '12345678'),
         heartbeat=600
     )
 )
@@ -27,9 +28,9 @@ channel.queue_bind(exchange='amq.topic', queue=args.queue_name, routing_key=args
  
 # Gear settings
 gear_settings = {
-    1: {'max_pwm_straight': 140, 'max_pwm_turn': 130, 'max_pwm_backward': 140},
-    2: {'max_pwm_straight': 185, 'max_pwm_turn': 150, 'max_pwm_backward': 185},
-    3: {'max_pwm_straight': 255, 'max_pwm_turn': 185, 'max_pwm_backward': 255}
+    1: {'max_pwm_straight': 180, 'max_pwm_turn': 180, 'max_pwm_backward': 180},
+    2: {'max_pwm_straight': 215, 'max_pwm_turn': 200, 'max_pwm_backward': 215},
+    3: {'max_pwm_straight': 230, 'max_pwm_turn': 215, 'max_pwm_backward': 230}
 }
  
 # Motor Direction
