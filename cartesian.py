@@ -3,15 +3,30 @@ import json
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
+import argparse
+
+# Argument parser setup
+parser = argparse.ArgumentParser(description='Megabot Control')
+parser.add_argument('rmq_server_camera', type=str, help='RabbitMQ Server Host IP Address / Domain')
+parser.add_argument('rmq_server_control', type=str, help='RabbitMQ Server Host IP Address / Domain')
+args = parser.parse_args()
 
 # RabbitMQ connection parameters
-RABBITMQ_HOST = 'localhost'
+RABBITMQ_HOST = args.rmq_server_camera
 RABBITMQ_PORT = 5672
 RABBITMQ_VIRTUAL_HOST = '/'
 RABBITMQ_USERNAME = 'camera'
 RABBITMQ_PASSWORD = 'camera'
 QUEUE_NAMES = ['camera-front', 'camera-side-1', 'camera-side-2', 'camera-back']
 EXCHANGE_NAME = 'amq.direct'
+
+RABBITMQ_HOST_CONTROL = args.rmq_server_control
+RABBITMQ_PORT_CONTROL = 5672
+RABBITMQ_VIRTUAL_HOST_CONTROL = '/megabot'
+RABBITMQ_USERNAME_CONTROL = 'megabot'
+RABBITMQ_PASSWORD_CONTROL = '12345678'
+QUEUE_NAMES_CONTROL = 'vision-summary'
+EXCHANGE_NAME_CONTROL = 'amq.direct'
 
 # json container
 camera = {
@@ -23,6 +38,10 @@ camera = {
 
 # Create a figure and axis for plotting
 fig, ax = plt.subplots()
+
+# Global channel control
+global channel_control
+channel_control = None
 
 def update_plot(data):
 
@@ -153,30 +172,45 @@ def update_plot(data):
     plt.pause(0.1)
 
 def callback(ch, method, properties, body):
-    # Parse the incoming message
-    queue_name = method.routing_key  # Get the queue name from the routing key
-    if(queue_name == 'camera-front'):
-        data = json.loads(body)
-        camera['camera-front'] = data
-    elif(queue_name == 'camera-side-1'):
-        data = json.loads(body)
-        camera['camera-side-1'] = data
-    elif(queue_name == 'camera-side-2'):
-        data = json.loads(body)
-        camera['camera-side-2'] = data
-    elif(queue_name == 'camera-back'):
-        data = json.loads(body)
-        camera['camera-back'] = data
 
-    # if data complete then process as whole
-    if (camera['camera-front'] and 
-        camera['camera-side-1']):
-        # camera['camera-side-1'] and 
-        # camera['camera-side-2'] and 
-        # camera['camera-back']):
+    global channel_control  # Declare channel_control as global
+
+    try:
+        # Parse the incoming message
+        queue_name = method.routing_key
+        if(queue_name == 'camera-front'):
+            data = json.loads(body)
+            camera['camera-front'] = data
+        elif(queue_name == 'camera-side-1'):
+            data = json.loads(body)
+            camera['camera-side-1'] = data
+        elif(queue_name == 'camera-side-2'):
+            data = json.loads(body)
+            camera['camera-side-2'] = data
+        elif(queue_name == 'camera-back'):
+            data = json.loads(body)
+            camera['camera-back'] = data
+
+        # Publish the updated camera data to the control channel if it exists
+        if channel_control is not None:
+            channel_control.basic_publish(exchange=EXCHANGE_NAME_CONTROL, routing_key=QUEUE_NAMES_CONTROL, body=json.dumps(camera))
+            print("Published to " + RABBITMQ_HOST_CONTROL)
+
+        # if data complete then process as whole
+        # if (camera['camera-front'] and 
+        #     camera['camera-side-1']):
+            # camera['camera-side-1'] and 
+            # camera['camera-side-2'] and 
+            # camera['camera-back']):
         update_plot(camera)
 
+    except Exception as e:
+        print(f"Error processing message from {queue_name}: {e}")
+    
 def main():
+
+    global channel_control
+
     # Establish connection to RabbitMQ with credentials
     credentials = pika.PlainCredentials(RABBITMQ_USERNAME, RABBITMQ_PASSWORD)
     connection = pika.BlockingConnection(
@@ -189,6 +223,18 @@ def main():
     )
     channel = connection.channel()
 
+    credentials_control = pika.PlainCredentials(RABBITMQ_USERNAME_CONTROL, RABBITMQ_PASSWORD_CONTROL)
+    connection_control = pika.BlockingConnection(
+        pika.ConnectionParameters(
+            host=RABBITMQ_HOST_CONTROL,
+            port=RABBITMQ_PORT_CONTROL,
+            virtual_host=RABBITMQ_VIRTUAL_HOST_CONTROL,
+            credentials =credentials_control
+        )
+    )
+    channel_control = connection_control.channel()
+    channel_control.queue_declare(queue=QUEUE_NAMES_CONTROL, durable = True, auto_delete = True)
+
     # Declare the queues (make sure they exist)
     for queue_name in QUEUE_NAMES:
         channel.queue_declare(queue=queue_name, durable = True, auto_delete = True)
@@ -196,6 +242,10 @@ def main():
     # Bind the queues to the exchange with the routing key
     for queue_name in QUEUE_NAMES:
         channel.queue_bind(exchange=EXCHANGE_NAME, queue=queue_name, routing_key=queue_name)
+
+    # Bind the publish queue
+    channel_control.queue_declare(queue=QUEUE_NAMES_CONTROL, durable=True, auto_delete=True)
+    channel_control.queue_bind(exchange=EXCHANGE_NAME_CONTROL, queue=QUEUE_NAMES_CONTROL, routing_key=QUEUE_NAMES_CONTROL)
 
     # Subscribe to the queues
     for queue_name in QUEUE_NAMES:
